@@ -367,6 +367,650 @@ JSX is the foundation of React development. Understanding these concepts will he
   - Component composition
   - Props and prop drilling
   - Component lifecycle (Class components)
+ 
+
+## 🧩 **What are React Components?**
+
+Components are the building blocks of React applications. They are reusable pieces of UI that can contain their own logic, state, and styling.
+
+## ⚡ **1. Functional vs Class Components**
+
+### **Functional Components (Modern Approach)**
+Functional components are JavaScript functions that return JSX. They're the preferred way to write components in modern React.
+
+```jsx
+// ✅ Functional Component
+import React from 'react';
+
+const Welcome = (props) => {
+  return <h1>Hello, {props.name}!</h1>;
+};
+
+// ✅ With destructuring
+const Welcome = ({ name, age }) => {
+  return (
+    <div>
+      <h1>Hello, {name}!</h1>
+      <p>You are {age} years old</p>
+    </div>
+  );
+};
+
+// ✅ Arrow function syntax
+const Welcome = ({ name }) => <h1>Hello, {name}!</h1>;
+```
+
+### **Class Components (Legacy)**
+Class components use ES6 classes and have access to lifecycle methods.
+
+```jsx
+// Class Component
+import React, { Component } from 'react';
+
+class Welcome extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      count: 0
+    };
+  }
+
+  render() {
+    return <h1>Hello, {this.props.name}!</h1>;
+  }
+}
+```
+
+### **Example from your project:**
+```jsx
+// From your ResetPasswordScreen.jsx - Functional Component
+const ResetPasswordScreen = () => {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  return (
+    <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')}>
+      {/* Component content */}
+    </Box>
+  );
+};
+```
+
+## 🎯 **2. Component Composition**
+
+Component composition is the practice of building complex components by combining simpler ones.
+
+### **Basic Composition**
+```jsx
+// Simple components
+const Header = ({ title }) => <h1>{title}</h1>;
+const Content = ({ children }) => <main>{children}</main>;
+const Footer = () => <footer>© 2024</footer>;
+
+// Composed component
+const Page = () => (
+  <div>
+    <Header title="Welcome" />
+    <Content>
+      <p>This is the main content</p>
+      <p>More content here</p>
+    </Content>
+    <Footer />
+  </div>
+);
+```
+
+### **Children Prop Pattern**
+```jsx
+// Container component that accepts children
+const Card = ({ children, title }) => (
+  <Box borderWidth={1} borderRadius="lg" p={4}>
+    {title && <Heading size="md" mb={3}>{title}</Heading>}
+    {children}
+  </Box>
+);
+
+// Usage
+const UserProfile = () => (
+  <Card title="User Information">
+    <Text>Name: John Doe</Text>
+    <Text>Email: john@example.com</Text>
+  </Card>
+);
+```
+
+### **Example from your project:**
+```jsx
+// From your ResetPasswordScreen.jsx - Composition example
+const ResetPasswordScreen = () => {
+  return (
+    <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')}>
+      <Stack spacing={8} mx="auto" maxW="lg" py={12} px={6}>
+        <Stack align="center">
+          <Heading fontSize="2xl" textAlign="center">
+            Reset Password
+          </Heading>
+          <Text fontSize="lg" color="gray.600">
+            Enter your new password below
+          </Text>
+        </Stack>
+        <Box rounded="lg" bg={useColorModeValue('white', 'gray.700')} boxShadow="lg" p={8}>
+          {/* Form content */}
+        </Box>
+      </Stack>
+    </Box>
+  );
+};
+```
+
+## 📦 **3. Props and Prop Drilling**
+
+### **Props (Properties)**
+Props are read-only data passed from parent to child components.
+
+```jsx
+// Parent component
+const ParentComponent = () => {
+  const userData = {
+    name: "John Doe",
+    email: "john@example.com",
+    role: "Admin"
+  };
+
+  return <ChildComponent user={userData} isActive={true} />;
+};
+
+// Child component
+const ChildComponent = ({ user, isActive }) => {
+  return (
+    <div>
+      <h2>{user.name}</h2>
+      <p>{user.email}</p>
+      <span>{isActive ? 'Active' : 'Inactive'}</span>
+    </div>
+  );
+};
+```
+
+### **Prop Drilling**
+Prop drilling occurs when you pass props through multiple levels of components that don't need them.
+
+```jsx
+// ❌ Prop Drilling - Bad Practice
+const App = () => {
+  const user = { name: "John", email: "john@example.com" };
+  
+  return (
+    <div>
+      <Header user={user} />
+      <MainContent user={user} />
+      <Footer user={user} />
+    </div>
+  );
+};
+
+const Header = ({ user }) => (
+  <header>
+    <h1>Welcome, {user.name}</h1>
+    <Navigation user={user} /> {/* Passing user down */}
+  </header>
+);
+
+const Navigation = ({ user }) => (
+  <nav>
+    <UserMenu user={user} /> {/* Passing user down again */}
+  </nav>
+);
+
+const UserMenu = ({ user }) => (
+  <div>
+    <span>{user.email}</span> {/* Finally using the user prop */}
+  </div>
+);
+```
+
+### **Solutions to Prop Drilling**
+
+#### **1. Context API**
+```jsx
+// Create context
+const UserContext = React.createContext();
+
+// Provider component
+const UserProvider = ({ children }) => {
+  const [user, setUser] = useState({ name: "John", email: "john@example.com" });
+  
+  return (
+    <UserContext.Provider value={{ user, setUser }}>
+      {children}
+    </UserContext.Provider>
+  );
+};
+
+// Use context in any component
+const UserMenu = () => {
+  const { user } = useContext(UserContext);
+  
+  return <span>{user.email}</span>;
+};
+
+// App structure
+const App = () => (
+  <UserProvider>
+    <Header />
+    <MainContent />
+    <Footer />
+  </UserProvider>
+);
+```
+
+#### **2. Component Composition**
+```jsx
+// ✅ Better approach using composition
+const App = () => {
+  const user = { name: "John", email: "john@example.com" };
+  
+  return (
+    <div>
+      <Header>
+        <UserMenu user={user} />
+      </Header>
+      <MainContent />
+      <Footer />
+    </div>
+  );
+};
+
+const Header = ({ children }) => (
+  <header>
+    <h1>Welcome</h1>
+    <Navigation>{children}</Navigation>
+  </header>
+);
+
+const Navigation = ({ children }) => (
+  <nav>
+    {children} {/* Direct access to UserMenu */}
+  </nav>
+);
+```
+
+### **Example from your project:**
+```jsx
+// Example of props in your ResetPasswordScreen
+const ResetPasswordScreen = () => {
+  const [password, setPassword] = useState('');
+  
+  return (
+    <PasswordInput 
+      value={password}
+      onChange={setPassword}
+      placeholder="Enter new password"
+      isRequired={true}
+    />
+  );
+};
+
+const PasswordInput = ({ value, onChange, placeholder, isRequired }) => (
+  <FormControl isRequired={isRequired}>
+    <FormLabel>Password</FormLabel>
+    <Input
+      type="password"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  </FormControl>
+);
+```
+
+## ⏰ **4. Component Lifecycle (Class Components)**
+
+### **Lifecycle Methods Overview**
+
+```jsx
+class LifecycleExample extends Component {
+  // 1. Mounting Phase
+  constructor(props) {
+    super(props);
+    this.state = { data: null };
+    console.log('1. Constructor called');
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    console.log('2. getDerivedStateFromProps called');
+    return null; // Return new state or null
+  }
+
+  componentDidMount() {
+    console.log('4. Component mounted');
+    // Perfect place for API calls
+    this.fetchData();
+  }
+
+  // 2. Updating Phase
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log('5. shouldComponentUpdate called');
+    return true; // Return false to prevent re-render
+  }
+
+  getSnapshotBeforeUpdate(prevProps, prevState) {
+    console.log('6. getSnapshotBeforeUpdate called');
+    return null; // Return snapshot or null
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    console.log('7. Component updated');
+    // Handle side effects after update
+  }
+
+  // 3. Unmounting Phase
+  componentWillUnmount() {
+    console.log('8. Component will unmount');
+    // Cleanup: cancel API calls, remove event listeners
+    this.cancelApiCall();
+  }
+
+  // 4. Error Handling
+  componentDidCatch(error, errorInfo) {
+    console.log('Error caught:', error);
+    // Handle errors in child components
+  }
+
+  render() {
+    console.log('3. Render called');
+    return <div>Lifecycle Example</div>;
+  }
+}
+```
+
+### **Detailed Lifecycle Explanation**
+
+#### **Mounting Phase (Component is being created)**
+```jsx
+class UserProfile extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      user: null,
+      loading: true
+    };
+    console.log('Constructor: Component is being created');
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    // Called before render, can update state based on props
+    if (props.userId && !state.user) {
+      return { userId: props.userId };
+    }
+    return null;
+  }
+
+  componentDidMount() {
+    console.log('ComponentDidMount: Component is now in DOM');
+    // Perfect for:
+    // - API calls
+    // - Setting up subscriptions
+    // - Adding event listeners
+    this.fetchUserData();
+  }
+
+  fetchUserData = async () => {
+    try {
+      const response = await fetch(`/api/users/${this.state.userId}`);
+      const user = await response.json();
+      this.setState({ user, loading: false });
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  };
+
+  render() {
+    if (this.state.loading) {
+      return <div>Loading...</div>;
+    }
+    return (
+      <div>
+        <h1>{this.state.user?.name}</h1>
+        <p>{this.state.user?.email}</p>
+      </div>
+    );
+  }
+}
+```
+
+#### **Updating Phase (Component is being re-rendered)**
+```jsx
+class Counter extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { count: 0 };
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    // Return false to prevent unnecessary re-renders
+    if (nextState.count === this.state.count) {
+      return false;
+    }
+    return true;
+  }
+
+  getSnapshotBeforeUpdate(prevProps, prevState) {
+    // Called right before the most recently rendered output is committed
+    // Useful for capturing information from the DOM
+    if (prevState.count < this.state.count) {
+      return { message: 'Count increased!' };
+    }
+    return null;
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    // Called after component updates
+    if (snapshot) {
+      console.log(snapshot.message);
+    }
+    
+    // Example: Update document title when count changes
+    document.title = `Count: ${this.state.count}`;
+  }
+
+  increment = () => {
+    this.setState(prevState => ({
+      count: prevState.count + 1
+    }));
+  };
+
+  render() {
+    return (
+      <div>
+        <p>Count: {this.state.count}</p>
+        <button onClick={this.increment}>Increment</button>
+      </div>
+    );
+  }
+}
+```
+
+#### **Unmounting Phase (Component is being removed)**
+```jsx
+class Timer extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { seconds: 0 };
+    this.interval = null;
+  }
+
+  componentDidMount() {
+    this.interval = setInterval(() => {
+      this.setState(prevState => ({
+        seconds: prevState.seconds + 1
+      }));
+    }, 1000);
+  }
+
+  componentWillUnmount() {
+    // Cleanup: clear the interval
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
+    console.log('Timer component unmounted, interval cleared');
+  }
+
+  render() {
+    return <div>Seconds: {this.state.seconds}</div>;
+  }
+}
+```
+
+### **Error Boundaries**
+```jsx
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    // Update state so the next render will show the fallback UI
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    // Log error to an error reporting service
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h1>Something went wrong.</h1>
+          <p>{this.state.error?.message}</p>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Usage
+const App = () => (
+  <ErrorBoundary>
+    <UserProfile />
+  </ErrorBoundary>
+);
+```
+
+## 🔄 **5. Functional Components with Hooks (Modern Alternative)**
+
+### **Equivalent Lifecycle with Hooks**
+```jsx
+const UserProfile = ({ userId }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // componentDidMount equivalent
+  useEffect(() => {
+    fetchUserData();
+  }, []); // Empty dependency array = run once
+
+  // componentDidUpdate equivalent
+  useEffect(() => {
+    if (userId) {
+      fetchUserData();
+    }
+  }, [userId]); // Run when userId changes
+
+  // componentWillUnmount equivalent
+  useEffect(() => {
+    return () => {
+      // Cleanup function
+      console.log('Component will unmount');
+    };
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch(`/api/users/${userId}`);
+      const userData = await response.json();
+      setUser(userData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+  };
+
+  if (loading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      <h1>{user?.name}</h1>
+      <p>{user?.email}</p>
+    </div>
+  );
+};
+```
+
+## 🎯 **6. Best Practices**
+
+### **Component Naming**
+```jsx
+// ✅ Good - PascalCase for components
+const UserProfile = () => {};
+const ResetPasswordScreen = () => {};
+
+// ❌ Bad - camelCase or lowercase
+const userProfile = () => {};
+const resetPasswordScreen = () => {};
+```
+
+### **Component Organization**
+```jsx
+// ✅ Good - One component per file
+// UserProfile.jsx
+const UserProfile = () => {
+  // Component logic
+};
+
+export default UserProfile;
+
+// ✅ Good - Related components in same file
+// UserComponents.jsx
+const UserCard = () => {};
+const UserList = () => {};
+const UserForm = () => {};
+
+export { UserCard, UserList, UserForm };
+```
+
+### **Props Validation**
+```jsx
+import PropTypes from 'prop-types';
+
+const UserProfile = ({ name, email, age }) => {
+  return (
+    <div>
+      <h1>{name}</h1>
+      <p>{email}</p>
+      <p>{age}</p>
+    </div>
+  );
+};
+
+UserProfile.propTypes = {
+  name: PropTypes.string.isRequired,
+  email: PropTypes.string.isRequired,
+  age: PropTypes.number
+};
+
+UserProfile.defaultProps = {
+  age: 18
+};
+```
+
+Understanding these concepts is crucial for building maintainable React applications. Functional components with hooks are the modern approach, but understanding class components and lifecycle methods is still valuable for working with legacy code or understanding React's evolution!
 
 - **State Management**
   - useState hook
