@@ -1010,19 +1010,291 @@ UserProfile.defaultProps = {
 };
 ```
 
-Understanding these concepts is crucial for building maintainable React applications. Functional components with hooks are the modern approach, but understanding class components and lifecycle methods is still valuable for working with legacy code or understanding React's evolution!
+# 🔹 State Management in React
 
-- **State Management**
-  - useState hook
-  - State updates and immutability
-  - State lifting
-  - Local vs global state
+State is **data that changes over time** and determines how a component renders and behaves. Managing state properly is one of the most important parts of React development.
 
-- **Event Handling**
-  - Synthetic events
-  - Event handlers
-  - Preventing default behavior
-  - Event bubbling and capturing
+---
+
+## 1. **useState Hook**
+
+* The most common way to add state to a **functional component**.
+* Returns **[state, setState]** pair.
+* Re-render happens when `setState` updates the value.
+
+### Example:
+
+```jsx
+import React, { useState } from "react";
+
+function Counter() {
+  const [count, setCount] = useState(0); // initial state = 0
+
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+    </div>
+  );
+}
+```
+
+✅ `useState` ensures React re-renders whenever state changes.
+
+---
+
+## 2. **State Updates and Immutability**
+
+* **Never mutate state directly** (e.g., `state.value = newValue ❌`).
+* React uses **shallow comparison** to detect changes → if the reference is same, React won’t re-render.
+
+### Correct Way:
+
+```jsx
+// ❌ Wrong: Mutating directly
+setItems(items.push("New Item"));
+
+// ✅ Right: Return a new array
+setItems([...items, "New Item"]);
+```
+
+👉 Always create a **new copy** (arrays, objects) when updating.
+
+---
+
+## 3. **State Lifting**
+
+* Sometimes multiple components need to **share the same state**.
+* Instead of duplicating state, we **lift state up** to the closest common ancestor and pass it down via props.
+
+### Example:
+
+```jsx
+function Child({ value, onChange }) {
+  return <input value={value} onChange={(e) => onChange(e.target.value)} />;
+}
+
+function Parent() {
+  const [text, setText] = useState("");
+
+  return (
+    <div>
+      <Child value={text} onChange={setText} />
+      <p>Current Value: {text}</p>
+    </div>
+  );
+}
+```
+
+✅ `Parent` owns the state, and both `Child` & `Parent` share it.
+
+---
+
+## 4. **Local vs Global State**
+
+### 🔹 Local State
+
+* Belongs to a **single component**.
+* Managed using `useState` or `useReducer`.
+* Example: input field value, modal open/close state.
+
+```jsx
+function Modal() {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div>
+      <button onClick={() => setIsOpen(true)}>Open</button>
+      {isOpen && <p>Modal Content</p>}
+    </div>
+  );
+}
+```
+
+---
+
+### 🔹 Global State
+
+* Shared across **multiple, unrelated components**.
+* Useful for **authentication, theme, user preferences, cart data**.
+* Managed using:
+
+  * **Context API** (built-in, good for small/medium apps).
+  * **State management libraries** (Redux, Zustand, MobX, Recoil).
+
+```jsx
+// Example: Context API for Theme
+const ThemeContext = createContext();
+
+function App() {
+  const [theme, setTheme] = useState("light");
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      <Child />
+    </ThemeContext.Provider>
+  );
+}
+
+function Child() {
+  const { theme } = useContext(ThemeContext);
+  return <p>Current Theme: {theme}</p>;
+}
+```
+
+---
+
+## 🔹 Summary
+
+* **`useState`** → for local state in components.
+* **Immutability** → always update with new references.
+* **State Lifting** → move state to a common parent if multiple components need it.
+* **Local vs Global** → choose Context API or libraries when state is needed across the app.
+
+---
+
+# 🔹 Event Handling in React
+
+React uses a system called the **Synthetic Event System**, which provides a **consistent event API** across browsers, wrapping around the browser’s native events.
+
+---
+
+## 1. **Synthetic Events**
+
+* React creates a **SyntheticEvent object** that normalizes different browsers’ event APIs.
+* It mimics the native event but works the same in all browsers.
+* Example: Instead of `onclick` (lowercase in HTML), React uses `onClick` (camelCase).
+
+```jsx
+function Button() {
+  function handleClick(event) {
+    console.log(event.type); // "click"
+    console.log(event.nativeEvent); // Native browser event
+  }
+
+  return <button onClick={handleClick}>Click Me</button>;
+}
+```
+
+✅ `event` is a **SyntheticEvent**, but you can still access the underlying `nativeEvent`.
+
+---
+
+## 2. **Event Handlers**
+
+* Event handlers in React are functions passed as props to elements.
+* Naming convention: `on<Event>` in JSX (`onClick`, `onChange`, `onSubmit`).
+* Handlers are written in **camelCase** (unlike HTML).
+
+```jsx
+function InputBox() {
+  function handleChange(e) {
+    console.log("Value:", e.target.value);
+  }
+  return <input type="text" onChange={handleChange} />;
+}
+```
+
+* Handlers can be **inline** or defined separately.
+
+```jsx
+<button onClick={() => alert("Clicked!")}>Inline Handler</button>
+```
+
+---
+
+## 3. **Preventing Default Behavior**
+
+* Use `event.preventDefault()` to stop default browser actions.
+* Common use case: prevent form submission from refreshing the page.
+
+```jsx
+function Form() {
+  function handleSubmit(e) {
+    e.preventDefault(); // stop page reload
+    console.log("Form submitted!");
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+
+---
+
+## 4. **Event Bubbling and Capturing**
+
+### 🔹 Event Bubbling (default in React)
+
+* Events start from the **target element** and bubble up to ancestors.
+* Example: Clicking a button triggers the button’s handler → parent’s handler → root.
+
+```jsx
+function App() {
+  function handleDivClick() {
+    console.log("DIV clicked");
+  }
+
+  function handleButtonClick(e) {
+    console.log("BUTTON clicked");
+    // e.stopPropagation(); // Stops bubbling if needed
+  }
+
+  return (
+    <div onClick={handleDivClick}>
+      <button onClick={handleButtonClick}>Click Me</button>
+    </div>
+  );
+}
+```
+
+📌 Output if button is clicked:
+
+```
+BUTTON clicked
+DIV clicked
+```
+
+---
+
+### 🔹 Event Capturing (rare, but supported)
+
+* Events go from **top → down** before reaching the target.
+* Use `onClickCapture` (notice `Capture` suffix) for capturing phase.
+
+```jsx
+<div onClickCapture={() => console.log("DIV capturing")}>
+  <button onClick={() => console.log("Button clicked")}>Click</button>
+</div>
+```
+
+📌 Output if button is clicked:
+
+```
+DIV capturing
+Button clicked
+```
+
+---
+
+### 🔹 Stopping Propagation
+
+* `e.stopPropagation()` → stops the event from going further (bubbling/capturing).
+* `e.preventDefault()` → stops the browser’s default action.
+
+---
+
+## 🔹 Summary
+
+* React uses **SyntheticEvent** for cross-browser consistency.
+* Handlers use **camelCase (`onClick`)** instead of lowercase (`onclick`).
+* Use **`preventDefault()`** to block default actions.
+* Understand **event flow**: capturing (top → target) and bubbling (target → top).
+* Use **`stopPropagation()`** carefully to control event flow.
+
+---
+
 
 ### **Hooks (React 16.8+)**
 - **useState** - Managing component state
