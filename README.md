@@ -1428,12 +1428,283 @@ Button clicked
 
 
 ### **Hooks (React 16.8+)**
-- **useState** - Managing component state
-- **useEffect** - Side effects and lifecycle
-- **useRef** - Accessing DOM elements
-- **useCallback** - Memoizing functions
-- **useMemo** - Memoizing values
-- **useContext** - Sharing data across components
+---
+
+## 🧩 1️⃣ `useState` — **Managing Component State**
+
+### 🔹 Purpose:
+
+Used to manage **local (mutable) state** in a functional component.
+
+### 🔹 Syntax:
+
+```jsx
+const [state, setState] = useState(initialValue);
+```
+
+### 🔹 Example:
+
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    <>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+    </>
+  );
+}
+```
+
+### 🔹 Key Points:
+
+* State updates are **asynchronous** (batch processed).
+* Always use the **setter** (`setCount`) — never mutate state directly.
+* To update based on previous value:
+
+  ```jsx
+  setCount(prev => prev + 1);
+  ```
+* Each render gets its own state snapshot.
+
+---
+
+## ⚙️ 2️⃣ `useEffect` — **Side Effects and Lifecycle**
+
+### 🔹 Purpose:
+
+Handles **side effects** like:
+
+* Fetching data
+* Subscribing/unsubscribing to events
+* Manipulating DOM
+* Running code on mount/update/unmount
+
+### 🔹 Syntax:
+
+```jsx
+useEffect(() => {
+  // Side effect
+  return () => {
+    // Cleanup (optional)
+  };
+}, [dependencies]);
+```
+
+### 🔹 Example:
+
+```jsx
+function FetchUsers() {
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    fetch("https://jsonplaceholder.typicode.com/users")
+      .then(res => res.json())
+      .then(setUsers);
+
+    // Cleanup if needed
+    return () => console.log("Component unmounted");
+  }, []); // Runs once (on mount)
+}
+```
+
+### 🔹 Dependency Rules:
+
+* `[]` → runs once (like `componentDidMount`)
+* `[count]` → runs when `count` changes
+* No deps → runs on **every render**
+
+### ⚠️ Common Mistake:
+
+Don’t forget dependencies! Missing one can cause stale data or bugs.
+
+---
+
+## 🪞 3️⃣ `useRef` — **Accessing DOM Elements / Storing Mutable Values**
+
+### 🔹 Purpose:
+
+* Directly access DOM elements (like `document.getElementById` but React-safe).
+* Store **mutable values** that don’t trigger re-render on change.
+
+### 🔹 Syntax:
+
+```jsx
+const ref = useRef(initialValue);
+```
+
+### 🔹 Example 1: Access DOM
+
+```jsx
+function InputFocus() {
+  const inputRef = useRef(null);
+
+  const focusInput = () => inputRef.current.focus();
+
+  return (
+    <>
+      <input ref={inputRef} type="text" />
+      <button onClick={focusInput}>Focus Input</button>
+    </>
+  );
+}
+```
+
+### 🔹 Example 2: Store mutable value
+
+```jsx
+const renderCount = useRef(0);
+renderCount.current += 1;
+```
+
+### 🔹 Key Points:
+
+* Changing `ref.current` **does not cause re-render**.
+* Useful for persisting data between renders (like previous values).
+
+---
+
+## 🔁 4️⃣ `useCallback` — **Memoizing Functions**
+
+### 🔹 Purpose:
+
+Prevents **unnecessary re-creation** of functions between renders — important for performance, especially when passing callbacks to child components.
+
+### 🔹 Syntax:
+
+```jsx
+const memoizedFn = useCallback(() => {
+  // function code
+}, [dependencies]);
+```
+
+### 🔹 Example:
+
+```jsx
+function Parent() {
+  const [count, setCount] = useState(0);
+
+  const handleClick = useCallback(() => {
+    console.log("Clicked!");
+  }, []); // memoized version of function
+
+  return <Child onClick={handleClick} />;
+}
+```
+
+Without `useCallback`, `handleClick` would be recreated on every render → `Child` would re-render unnecessarily.
+
+### 🔹 When to Use:
+
+* When passing functions as **props** to memoized components.
+* When a function’s **identity** matters (e.g., dependencies in `useEffect`).
+
+---
+
+## 💎 5️⃣ `useMemo` — **Memoizing Values**
+
+### 🔹 Purpose:
+
+Memoizes **computed values** to avoid expensive recalculations on every render.
+
+### 🔹 Syntax:
+
+```jsx
+const memoizedValue = useMemo(() => computeExpensiveValue(data), [data]);
+```
+
+### 🔹 Example:
+
+```jsx
+function ProductList({ products }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    console.log("Filtering...");
+    return products.filter(p => p.name.includes(search));
+  }, [search, products]);
+
+  return (
+    <>
+      <input value={search} onChange={e => setSearch(e.target.value)} />
+      {filtered.map(p => <div key={p.id}>{p.name}</div>)}
+    </>
+  );
+}
+```
+
+### 🔹 When to Use:
+
+* Expensive calculations (sorting, filtering, computations).
+* When derived data doesn’t need to be recalculated unless dependencies change.
+
+---
+
+## 🌐 6️⃣ `useContext` — **Sharing Data Across Components**
+
+### 🔹 Purpose:
+
+Access global data from anywhere without prop drilling.
+
+### 🔹 Setup:
+
+1. **Create context**
+2. **Wrap app with Provider**
+3. **Use `useContext` in child components**
+
+### 🔹 Example:
+
+```jsx
+// Context.js
+export const ThemeContext = createContext();
+
+// Provider
+export const ThemeProvider = ({ children }) => {
+  const [theme, setTheme] = useState("light");
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+```
+
+```jsx
+// Using context
+import { useContext } from "react";
+import { ThemeContext } from "./Context";
+
+function Button() {
+  const { theme, setTheme } = useContext(ThemeContext);
+
+  return (
+    <button
+      onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+      style={{ background: theme === "light" ? "#fff" : "#333", color: "#000" }}
+    >
+      Theme: {theme}
+    </button>
+  );
+}
+```
+
+---
+
+## 🧠 Summary Table
+
+| Hook          | Purpose                           | Triggers Re-render            | Common Use Case               |
+| ------------- | --------------------------------- | ----------------------------- | ----------------------------- |
+| `useState`    | Manage local component state      | ✅ Yes                         | Counters, form inputs         |
+| `useEffect`   | Handle side effects, lifecycle    | ❌ No                          | API calls, event listeners    |
+| `useRef`      | Access DOM or store mutable value | ❌ No                          | Focus input, store prev value |
+| `useCallback` | Memoize functions                 | ❌ No                          | Avoid re-rendering children   |
+| `useMemo`     | Memoize computed values           | ❌ No                          | Optimize heavy calculations   |
+| `useContext`  | Access shared global data         | ✅ When Provider value changes | Global state like theme, user |
+
+---
+
 
 ## 🔧 **Intermediate Level**
 
