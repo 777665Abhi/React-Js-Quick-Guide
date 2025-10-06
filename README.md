@@ -605,6 +605,137 @@ const App = () => (
 );
 ```
 
+**multiple pieces of data** in **React Context API** 
+
+---
+
+## 🧠 What Context API Does
+
+The **Context API** allows you to share data across the component tree **without passing props** manually at every level.
+
+---
+
+## 🧩 Example: Storing Multiple Data in Context
+
+Let’s say you want to save **user info**, **theme**, and **language** — all in one context.
+
+### Step 1️⃣ — Create Context
+
+```jsx
+import React, { createContext, useState } from "react";
+
+// 1. Create context
+export const AppContext = createContext();
+
+// 2. Create provider
+export const AppProvider = ({ children }) => {
+  const [user, setUser] = useState({ name: "Abhishek", role: "Developer" });
+  const [theme, setTheme] = useState("light");
+  const [language, setLanguage] = useState("en");
+
+  // 3. Combine all state into one object
+  const value = {
+    user,
+    setUser,
+    theme,
+    setTheme,
+    language,
+    setLanguage,
+  };
+
+  return (
+    <AppContext.Provider value={value}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+```
+
+---
+
+### Step 2️⃣ — Wrap Your App
+
+```jsx
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App";
+import { AppProvider } from "./AppContext";
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(
+  <AppProvider>
+    <App />
+  </AppProvider>
+);
+```
+
+---
+
+### Step 3️⃣ — Use Context Anywhere
+
+```jsx
+import React, { useContext } from "react";
+import { AppContext } from "./AppContext";
+
+const Dashboard = () => {
+  const { user, theme, language, setTheme, setLanguage } = useContext(AppContext);
+
+  return (
+    <div>
+      <h2>Welcome, {user.name}!</h2>
+      <p>Current Theme: {theme}</p>
+      <p>Language: {language}</p>
+
+      <button onClick={() => setTheme(theme === "light" ? "dark" : "light")}>
+        Toggle Theme
+      </button>
+
+      <button onClick={() => setLanguage(language === "en" ? "hi" : "en")}>
+        Toggle Language
+      </button>
+    </div>
+  );
+};
+
+export default Dashboard;
+```
+
+---
+
+## ✅ Alternative: Use a Single State Object
+
+Instead of multiple `useState` hooks, you can keep **one combined object**:
+
+```jsx
+const [appState, setAppState] = useState({
+  user: { name: "Abhishek", role: "Developer" },
+  theme: "light",
+  language: "en",
+});
+
+// Update specific fields:
+setAppState((prev) => ({ ...prev, theme: "dark" }));
+setAppState((prev) => ({
+  ...prev,
+  user: { ...prev.user, name: "Singh" },
+}));
+```
+
+Then provide and consume `appState` + `setAppState` through context.
+
+---
+
+## ⚡ Tip for Scaling:
+
+When your app grows, you can:
+
+* Split into **multiple contexts** (e.g., `UserContext`, `ThemeContext`).
+* Use **useReducer** for better structure (especially if states are related).
+
+---
+
+
+
 #### **2. Component Composition**
 ```jsx
 // ✅ Better approach using composition
