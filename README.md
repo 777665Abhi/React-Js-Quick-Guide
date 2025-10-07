@@ -1706,17 +1706,273 @@ function Button() {
 ---
 
 
-## 🔧 **Intermediate Level**
+## 🧩 **Custom Hooks**
 
-### **Advanced Hooks**
-- **Custom Hooks**
-  - Creating reusable logic
-  - Hook composition
-  - Best practices
+### 🔹 What are Custom Hooks?
 
-- **useReducer** - Complex state logic
-- **useLayoutEffect** - Synchronous effects
-- **useImperativeHandle** - Exposing imperative methods
+A **Custom Hook** is a JavaScript function whose name starts with `"use"` and that can **use other hooks** inside it.
+They allow you to **extract reusable logic** from components — logic that manages state, side effects, or any hook-based behavior.
+
+---
+
+### 🔹 Example — Reusable Fetch Hook
+
+```jsx
+import { useState, useEffect } from "react";
+
+function useFetch(url) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    setLoading(true);
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if (isMounted) setData(data);
+      })
+      .catch(err => {
+        if (isMounted) setError(err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => { isMounted = false };
+  }, [url]);
+
+  return { data, loading, error };
+}
+
+export default useFetch;
+```
+
+Usage:
+
+```jsx
+const { data, loading, error } = useFetch("https://api.example.com/users");
+```
+
+---
+
+### 🔹 Why Use Custom Hooks?
+
+✅ To **reuse logic** between multiple components.
+✅ To keep components **clean and focused**.
+✅ To **compose multiple hooks together**.
+
+---
+
+### 🔹 Hook Composition Example
+
+You can build a complex hook using multiple hooks:
+
+```jsx
+function useUserData(userId) {
+  const { data, loading, error } = useFetch(`/api/users/${userId}`);
+  const isOnline = useOnlineStatus();
+
+  return { user: data, loading, error, isOnline };
+}
+```
+
+Here, `useUserData` *composes* two other hooks (`useFetch` and `useOnlineStatus`).
+
+---
+
+### 🔹 Best Practices
+
+* Always start hook names with **“use”**.
+* **Do not call hooks conditionally** (follow the Rules of Hooks).
+* **Return only necessary values** (avoid exposing internal details).
+* Keep logic **focused** — one custom hook = one specific purpose.
+
+---
+
+## ⚙️ **useReducer — Complex State Logic**
+
+### 🔹 When to Use
+
+When you have **complex state transitions** or **multiple sub-values** of state that change together (like forms, todo lists, etc.).
+
+---
+
+### 🔹 Syntax
+
+```jsx
+const [state, dispatch] = useReducer(reducer, initialState);
+```
+
+### 🔹 Example — Todo Reducer
+
+```jsx
+import { useReducer } from "react";
+
+const initialState = [];
+
+function reducer(state, action) {
+  switch (action.type) {
+    case "ADD":
+      return [...state, { id: Date.now(), text: action.text }];
+    case "REMOVE":
+      return state.filter(todo => todo.id !== action.id);
+    default:
+      return state;
+  }
+}
+
+export default function TodoApp() {
+  const [todos, dispatch] = useReducer(reducer, initialState);
+
+  return (
+    <>
+      <button onClick={() => dispatch({ type: "ADD", text: "New Task" })}>
+        Add Task
+      </button>
+      {todos.map(todo => (
+        <div key={todo.id}>
+          {todo.text}
+          <button onClick={() => dispatch({ type: "REMOVE", id: todo.id })}>❌</button>
+        </div>
+      ))}
+    </>
+  );
+}
+```
+
+### 🔹 Advantages
+
+✅ Predictable state transitions
+✅ Easier debugging
+✅ Centralized logic
+✅ Great for **complex UI logic** or **form management**
+
+---
+
+## ⚡ **useLayoutEffect — Synchronous Effects**
+
+### 🔹 Difference from `useEffect`
+
+* `useEffect` runs **asynchronously after painting** (non-blocking).
+* `useLayoutEffect` runs **synchronously after DOM mutations but before painting** (blocking).
+
+In short:
+
+> `useLayoutEffect` lets you **read layout or DOM measurements** and **make updates before the browser repaints**.
+
+---
+
+### 🔹 Example
+
+```jsx
+import { useLayoutEffect, useRef, useState } from "react";
+
+function Box() {
+  const boxRef = useRef();
+  const [width, setWidth] = useState(0);
+
+  useLayoutEffect(() => {
+    const rect = boxRef.current.getBoundingClientRect();
+    setWidth(rect.width);
+  }, []);
+
+  return (
+    <div>
+      <div ref={boxRef} style={{ width: "200px", height: "100px", background: "lightblue" }} />
+      <p>Box width: {width}px</p>
+    </div>
+  );
+}
+```
+
+Here, `useLayoutEffect` ensures the DOM is **measured** before the screen is painted — avoiding visible flicker.
+
+---
+
+### 🔹 Use Cases
+
+* Reading DOM measurements (`offsetHeight`, `scrollWidth`, etc.)
+* Synchronous animations
+* Fixing layout glitches before paint
+
+⚠️ **Avoid overuse** — it can block rendering and hurt performance.
+
+---
+
+## 🧠 **useImperativeHandle — Exposing Imperative Methods**
+
+### 🔹 Purpose
+
+Used **with `forwardRef`** to **expose specific methods or properties** from a child component to its parent — while keeping internal implementation private.
+
+---
+
+### 🔹 Example
+
+```jsx
+import { useImperativeHandle, useRef, forwardRef } from "react";
+
+const Input = forwardRef((props, ref) => {
+  const inputRef = useRef();
+
+  useImperativeHandle(ref, () => ({
+    focus: () => {
+      inputRef.current.focus();
+    },
+    clear: () => {
+      inputRef.current.value = "";
+    }
+  }));
+
+  return <input ref={inputRef} placeholder="Type here..." />;
+});
+
+export default function Parent() {
+  const inputRef = useRef();
+
+  return (
+    <div>
+      <Input ref={inputRef} />
+      <button onClick={() => inputRef.current.focus()}>Focus</button>
+      <button onClick={() => inputRef.current.clear()}>Clear</button>
+    </div>
+  );
+}
+```
+
+---
+
+### 🔹 Why Use It?
+
+✅ To **control child components imperatively** (focus, scroll, play video, etc.)
+✅ Keeps **child internals encapsulated**
+✅ Common in UI libraries (e.g., controlling `input` or `modal`)
+
+---
+
+### 🔹 Best Practices
+
+* Use **only for specific imperative actions** (like focus, scroll).
+* Prefer **props for declarative control** when possible.
+* Always combine with **`forwardRef`**.
+* Don’t expose too many methods — keep the API minimal.
+
+---
+
+## 🧾 **Summary Table**
+
+| Hook                    | Purpose                        | When to Use                    | Key Concept               |
+| ----------------------- | ------------------------------ | ------------------------------ | ------------------------- |
+| **Custom Hooks**        | Reuse logic between components | Whenever logic repeats         | Composition & abstraction |
+| **useReducer**          | Manage complex state logic     | Multiple state transitions     | Reducer pattern           |
+| **useLayoutEffect**     | DOM measurement before paint   | Need synchronous updates       | Runs before paint         |
+| **useImperativeHandle** | Expose imperative APIs         | When parent must control child | Works with `forwardRef`   |
+
+---
+
 
 ### **Performance Optimization**
 - **React.memo** - Preventing unnecessary re-renders
